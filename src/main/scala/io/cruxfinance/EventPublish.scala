@@ -13,6 +13,7 @@ import java.util.stream.Collectors
 import com.satergo.ergonnection.protocol.ProtocolMessage
 import com.satergo.ergonnection.modifiers.Header
 import com.satergo.ergonnection.messages.ModifierRequest
+import io.cruxfinance.nodeApi.api
 import io.cruxfinance.types.Config
 import org.zeromq.ZContext
 import org.zeromq.SocketType
@@ -23,23 +24,47 @@ object EventPublish {
     val config = Config.read("config.json")
 
     val nodeURL = config.nodeURL
+    // port must be 9022 for testnet
     val nodePort = config.nodePeersPort
+
+    val nodeApi = new api(nodeURL)
 
     val nodeURI = new URI(nodeURL)
 
     val zeroMQIP = config.zmqIP
     val zeroMQPort = config.zmqPort
 
-    var ergoSocket = new ErgoSocket(
-      nodeURI.getHost,
-      nodePort.toInt,
-      new Peer(
-        "ergoref",
-        "ergo-mainnet-5.0.12",
-        Version.parse("5.0.12"),
-        ErgoSocket.BASIC_FEATURE_SET
-      )
-    )
+    val TESTNET_MAGIC = Array[Byte](2, 0, 2, 3)
+
+    var ergoSocket: ErgoSocket = {
+
+      if (nodeApi.getNodeInfo.network == "mainnet") {
+        new ErgoSocket(
+          nodeURI.getHost,
+          nodePort.toInt,
+          new Peer(
+            nodeApi.getNodeInfo.name,
+            nodeApi.getNodeInfo.appVersion,
+            Version.parse("5.0.12"),
+            ErgoSocket.BASIC_FEATURE_SET
+          )
+        )
+      } else if (nodeApi.getNodeInfo.network == "testnet") {
+        new ErgoSocket(
+          nodeURI.getHost,
+          nodePort.toInt,
+          new Peer(
+            nodeApi.getNodeInfo.name,
+            nodeApi.getNodeInfo.appVersion,
+            Version.parse("5.0.12"),
+            ErgoSocket.BASIC_FEATURE_SET
+          ),
+          TESTNET_MAGIC
+        )
+      } else {
+        throw new IllegalArgumentException("Invalid network type")
+      }
+    }
 
     ergoSocket.sendHandshake()
     ergoSocket.acceptHandshake()
@@ -48,7 +73,7 @@ object EventPublish {
     val socket = zContext.createSocket(SocketType.PUB)
     socket.bind(f"tcp://${zeroMQIP}:${zeroMQPort}")
 
-    println(f"Peer info: ${ergoSocket.getPeerInfo()}");
+    println(f"Peer info: ${ergoSocket.getPeerInfo}");
 
     while (true) {
       try {

@@ -42,6 +42,7 @@ dockerBaseImage := "openjdk:17"
 libraryDependencies += "org.zeromq" % "jeromq" % "0.5.3"
 libraryDependencies += "com.google.code.gson" % "gson" % "2.10"
 libraryDependencies += "org.bouncycastle" % "bcprov-jdk15on" % "1.70"
+libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.14"
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.discard
