@@ -36,35 +36,25 @@ object EventPublish {
 
     val TESTNET_MAGIC = Array[Byte](2, 0, 2, 3)
 
-    var ergoSocket: ErgoSocket = {
-
-      if (nodeApi.getNodeInfo.network == "mainnet") {
-        new ErgoSocket(
-          nodeURI.getHost,
-          nodePort.toInt,
-          new Peer(
-            nodeApi.getNodeInfo.name,
-            nodeApi.getNodeInfo.appVersion,
-            Version.parse("5.0.12"),
-            ErgoSocket.BASIC_FEATURE_SET
-          )
-        )
-      } else if (nodeApi.getNodeInfo.network == "testnet") {
-        new ErgoSocket(
-          nodeURI.getHost,
-          nodePort.toInt,
-          new Peer(
-            nodeApi.getNodeInfo.name,
-            nodeApi.getNodeInfo.appVersion,
-            Version.parse("5.0.12"),
-            ErgoSocket.BASIC_FEATURE_SET
-          ),
-          TESTNET_MAGIC
-        )
-      } else {
-        throw new IllegalArgumentException("Invalid network type")
-      }
+    val magic = if (nodeApi.getNodeInfo.network == "mainnet") {
+      ErgoSocket.MAINNET_MAGIC
+    } else if (nodeApi.getNodeInfo.network == "testnet") {
+      TESTNET_MAGIC
+    } else {
+      throw new IllegalArgumentException("Invalid network type")
     }
+
+    var ergoSocket: ErgoSocket = new ErgoSocket(
+      nodeURI.getHost,
+      nodePort.toInt,
+      new Peer(
+        nodeApi.getNodeInfo.name,
+        nodeApi.getNodeInfo.appVersion,
+        Version.parse("5.0.12"),
+        ErgoSocket.BASIC_FEATURE_SET
+      ),
+      magic
+    )
 
     ergoSocket.sendHandshake()
     ergoSocket.acceptHandshake()
@@ -136,7 +126,8 @@ object EventPublish {
               "ergo-mainnet-5.0.12",
               Version.parse("5.0.12"),
               ErgoSocket.BASIC_FEATURE_SET
-            )
+            ),
+            magic
           );
           ergoSocket.sendHandshake();
           ergoSocket.acceptHandshake();
